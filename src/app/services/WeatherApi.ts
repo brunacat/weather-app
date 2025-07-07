@@ -6,13 +6,20 @@ export interface WeatherData {
     icon: string;
 }
 
+export interface CityCoordinates {
+    lat: number;
+    lon: number;
+    name: string;
+}
+
 export interface ForecastResponse {
     forecast: WeatherData[];
+    city: CityCoordinates;
 }
 
 // API Configuration
 const API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
-const BASE_URL = process.env.NEXT_PUBLIC_OPENWEATHER_BASE_URL || 'https://api.openweathermap.org/data/2.5';
+const BASE_URL = process.env.NEXT_PUBLIC_OPENWEATHER_BASE_URL;
 
 // Error handling
 export class WeatherApiError extends Error {
@@ -21,26 +28,6 @@ export class WeatherApiError extends Error {
         this.name = 'WeatherApiError';
     }
 }
-
-// Helper function to format date
-const formatDate = (timestamp: number): string => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-    });
-};
-
-// Helper function to format time
-const formatTime = (timestamp: number): string => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-    });
-};
 
 // Helper function to get weather icon
 const getWeatherIcon = (iconCode: string): string => {
@@ -69,14 +56,14 @@ const getWeatherIcon = (iconCode: string): string => {
 };
 
 // Fetch 5-day forecast
-export const fetchForecast = async (city: string): Promise<WeatherData[]> => {
+export const fetchForecast = async (city: string): Promise<ForecastResponse> => {
     if (!API_KEY) {
         throw new WeatherApiError('API key not configured. Please add NEXT_PUBLIC_OPENWEATHER_API_KEY to your .env.local file.');
     }
 
     try {
         const response = await fetch(
-            `${BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}`
+            `${BASE_URL}/forecast?q=${city}&appid=${API_KEY}&units=metric`
         );
 
         if (!response.ok) {
@@ -91,43 +78,32 @@ export const fetchForecast = async (city: string): Promise<WeatherData[]> => {
 
         const data = await response.json();
 
-        // Group forecast by day and get the noon forecast for each day
-        const dailyForecasts = data.list.filter((item: any, index: number) => {
-            const date = new Date(item.dt * 1000);
-            const hour = date.getHours();
-            // Get forecast around noon (12:00) for each day
-            return hour >= 11 && hour <= 13;
-        });
+        // Get one forecast per day (every 8th item = one per day)
+        const dailyForecasts = [];
+        for (let i = 0; i < 5; i++) {
+            dailyForecasts.push(data.list[i * 8]);
+        }
 
-        // If no noon forecasts, take the first forecast of each day
-        const forecasts = dailyForecasts.length >= 5
-            ? dailyForecasts.slice(0, 5)
-            : data.list.filter((item: any, index: number) => index % 8 === 0).slice(0, 5);
-
-        return forecasts.map((item: any) => ({
-            date: formatDate(item.dt),
+        const forecast = dailyForecasts.map((item: any) => ({
+            date: new Date(item.dt_txt).toLocaleDateString('pt-PT'),
             temperature: Math.round(item.main.temp),
             description: item.weather[0].description,
             icon: getWeatherIcon(item.weather[0].icon)
         }));
+
+        return {
+            forecast,
+            city: {
+                lat: data.city.coord.lat,
+                lon: data.city.coord.lon,
+                name: data.city.name
+            }
+        };
     } catch (error) {
         if (error instanceof WeatherApiError) {
             throw error;
         }
         throw new WeatherApiError('Network error. Please check your internet connection.');
-    }
-};
-
-// Fetch both current weather and forecast
-export const fetchWeatherData = async (city: string): Promise<ForecastResponse> => {
-    try {
-        const [forecast] = await Promise.all([
-            fetchForecast(city)
-        ]);
-
-        return { forecast };
-    } catch (error) {
-        throw error;
     }
 };
 

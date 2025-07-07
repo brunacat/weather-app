@@ -22,8 +22,13 @@ const PageContainer = styled.div`
     --gray-alpha-100: rgba(var(--gray-rgb), 0.06);
   }
 
+  @media (max-width: 900px) {
+    padding: 40px;
+    gap: 32px;
+  }
   @media (max-width: 600px) {
-    padding: 32px;
+    padding: 16px;
+    gap: 16px;
     padding-bottom: 80px;
   }
 `;
@@ -35,8 +40,12 @@ const Main = styled.main`
   grid-row-start: 2;
   align-items: center;
 
+  @media (max-width: 900px) {
+    gap: 20px;
+  }
   @media (max-width: 600px) {
     align-items: center;
+    gap: 12px;
   }
 `;
 
@@ -58,9 +67,13 @@ const SearchForm = styled.form`
   justify-content: center;
   flex-wrap: wrap;
 
+  @media (max-width: 900px) {
+    gap: 8px;
+  }
   @media (max-width: 768px) {
     flex-direction: column;
     width: 100%;
+    gap: 8px;
   }
 `;
 
@@ -79,8 +92,11 @@ const SearchInput = styled.input`
     border-color: #0070f3;
   }
 
-  @media (max-width: 768px) {
-    min-width: auto;
+  @media (max-width: 900px) {
+    min-width: 180px;
+  }
+  @media (max-width: 600px) {
+    min-width: 0;
     width: 100%;
   }
 `;
@@ -98,6 +114,9 @@ const SearchButton = styled.button`
 
   &:hover {
     background: #0051cc;
+  }
+  @media (max-width: 600px) {
+    width: 100%;
   }
 `;
 

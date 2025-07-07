@@ -11,13 +11,17 @@
   "dependencies": {
     "axios": "^1.10.0",
     "formik": "^2.4.6",
+    "leaflet": "^1.9.4",
     "next": "15.3.5",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.0.0-rc.1",
+    "react-charts": "^3.0.0-beta.57",
+    "react-dom": "^19.0.0-rc.1",
+    "react-leaflet": "^5.0.0-rc.2",
     "styled-components": "^6.1.19",
     "yup": "^1.6.1"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.19",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

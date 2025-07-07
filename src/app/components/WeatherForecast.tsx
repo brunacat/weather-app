@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { fetchForecast, WeatherData, WeatherApiError } from '../services/WeatherApi';
+import { fetchForecast, WeatherData, WeatherApiError, convertToFahrenheit } from '../services/WeatherApi';
+import TemperatureToggle from './TemperatureToggle';
+import TemperatureChart from './TemperatureChart';
+import WeatherMap from './WeatherMap';
 
 interface WeatherForecastProps {
     city: string;
@@ -11,6 +14,10 @@ interface WeatherForecastProps {
 const ForecastContainer = styled.div`
     margin-top: 32px;
     text-align: center;
+    width: 100%;
+    @media (max-width: 600px) {
+        margin-top: 16px;
+    }
 `;
 
 const ForecastTitle = styled.h2`
@@ -25,9 +32,15 @@ const ForecastGrid = styled.div`
     max-width: 1000px;
     margin: 0 auto;
 
-    @media (max-width: 768px) {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 16px;
+    @media (max-width: 900px) {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+    }
+    @media (max-width: 600px) {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        max-width: 100%;
+        padding: 0 4px;
     }
 `;
 
@@ -37,9 +50,12 @@ const ForecastCard = styled.div`
     border-radius: 12px;
     padding: 20px;
     text-align: center;
-
-    @media (max-width: 768px) {
-        padding: 16px;
+    min-width: 0;
+    @media (max-width: 900px) {
+        padding: 12px;
+    }
+    @media (max-width: 600px) {
+        padding: 8px;
     }
 `;
 
@@ -96,8 +112,10 @@ const Error = styled.p`
 
 export default function WeatherForecast({ city }: WeatherForecastProps) {
     const [forecast, setForecast] = useState<WeatherData[]>([]);
+    const [cityData, setCityData] = useState<{ lat: number; lon: number; name: string } | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [temperatureUnit, setTemperatureUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
 
     useEffect(() => {
         if (!city) return;
@@ -108,7 +126,8 @@ export default function WeatherForecast({ city }: WeatherForecastProps) {
 
             try {
                 const data = await fetchForecast(city);
-                setForecast(data);
+                setForecast(data.forecast);
+                setCityData(data.city);
             } catch (err) {
                 if (err instanceof WeatherApiError) {
                     setError(err.message);
@@ -122,6 +141,17 @@ export default function WeatherForecast({ city }: WeatherForecastProps) {
 
         fetchData();
     }, [city]);
+
+    const getDisplayTemperature = (celsiusTemp: number): number => {
+        if (temperatureUnit === 'fahrenheit') {
+            return convertToFahrenheit(celsiusTemp);
+        }
+        return celsiusTemp;
+    };
+
+    const getTemperatureSymbol = (): string => {
+        return temperatureUnit === 'celsius' ? '°C' : '°F';
+    };
 
     if (!city) {
         return null;
@@ -148,16 +178,41 @@ export default function WeatherForecast({ city }: WeatherForecastProps) {
     return (
         <ForecastContainer>
             <ForecastTitle>5-Day Forecast for {city}</ForecastTitle>
-            <ForecastGrid>
-                {forecast.map((day, index) => (
-                    <ForecastCard key={index}>
-                        <Date>{day.date}</Date>
-                        <Icon>{day.icon}</Icon>
-                        <Temperature>{day.temperature}°C</Temperature>
-                        <Description>{day.description}</Description>
-                    </ForecastCard>
-                ))}
-            </ForecastGrid>
+            <TemperatureToggle
+                unit={temperatureUnit}
+                onUnitChange={setTemperatureUnit}
+            />
+
+            {forecast && forecast.length > 0 && (
+                <>
+                    <ForecastGrid>
+                        {forecast.map((day, index) => (
+                            <ForecastCard key={index}>
+                                <Date>{day.date}</Date>
+                                <Icon>{day.icon}</Icon>
+                                <Temperature>
+                                    {getDisplayTemperature(day.temperature)}{getTemperatureSymbol()}
+                                </Temperature>
+                                <Description>{day.description}</Description>
+                            </ForecastCard>
+                        ))}
+                    </ForecastGrid>
+
+                    <TemperatureChart
+                        forecast={forecast}
+                        temperatureUnit={temperatureUnit}
+                    />
+
+                    {cityData && (
+                        <WeatherMap
+                            city={city}
+                            forecast={forecast}
+                            temperatureUnit={temperatureUnit}
+                            coordinates={cityData}
+                        />
+                    )}
+                </>
+            )}
         </ForecastContainer>
     );
 }
